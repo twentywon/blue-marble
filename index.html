@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>부루마불 다인용 (통행료 복구 및 소유자 식별 강화)</title>
+    <title>부루마불 다인용 (포커스 및 시각 효과 보강판)</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background-color: #f0f2f5; margin: 0; }
         
@@ -35,11 +35,10 @@
 
         /* 보드판 */
         #board { display: grid; grid-template-columns: repeat(11, 1fr); grid-template-rows: repeat(11, 1fr); width: 990px; height: 990px; border: 4px solid #333; background-color: #e0f7fa; position: relative; box-shadow: 0 12px 24px rgba(0,0,0,0.3); flex-shrink: 0; }
-        .cell { border: 1px solid #999; background-color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; text-align: center; font-weight: bold; position: relative; word-break: keep-all; cursor: pointer; transition: background-color 0.2s; }
-        .cell:hover { background-color: #e3f2fd; }
+        .cell { border: 1px solid #999; background-color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; text-align: center; font-weight: bold; position: relative; word-break: keep-all; cursor: pointer; transition: background-color 0.2s; box-sizing: border-box; }
+        .cell:hover { filter: brightness(0.95); }
         .cell.corner { background-color: #ffecb3; font-size: 16px; }
         
-        /* 4인 체제 소유자 마크 보강 */
         .owner-mark { position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.5); border: 2px solid #fff; z-index: 10; }
         .owner-0 { background-color: #e53935; } 
         .owner-1 { background-color: #1e88e5; }
@@ -104,9 +103,9 @@
         #customModalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center; }
         #customModalBox { background: #fff; padding: 30px; border-radius: 15px; width: 420px; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
         #modalTitle { margin-top: 0; color: #333; font-size: 26px; border-bottom: 3px solid #0288d1; padding-bottom: 12px; }
-        #modalDesc { color: #555; font-size: 16px; margin: 20px 0; word-break: keep-all; line-height: 1.5; font-weight: bold; }
+        #modalDesc { color: #555; font-size: 16px; margin: 20px 0; word-break: keep-all; line-height: 1.5; font-weight: bold; white-space: pre-wrap; }
         #modalInput { display: none; width: 80%; padding: 12px; margin-bottom: 20px; border: 2px solid #ccc; border-radius: 8px; font-size: 18px; text-align: center; }
-        #modalBtnContainer { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; max-height: 400px; overflow-y: auto; }
+        #modalBtnContainer { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; max-height: 350px; overflow-y: auto; }
         .modal-btn { padding: 15px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
         .modal-btn:hover { background: #388e3c; }
         .modal-btn.disabled { background-color: #9e9e9e; cursor: not-allowed; }
@@ -119,7 +118,6 @@
 <body>
     <audio id="bgmAudio" src="bgm.mp3" loop></audio>
 
-    <!-- 초기 설정망 -->
     <div id="setupOverlay">
         <div id="setupBox">
             <h2>게임 설정</h2>
@@ -142,10 +140,8 @@
     </div>
     
     <div class="main-layout">
-        <!-- 좌측 지갑 패널 -->
         <div class="side-panel left-panel" id="leftPanel"></div>
         
-        <!-- 중앙 보드판 -->
         <div id="board">
             <div class="center-area">
                 <div class="golden-deck" id="goldenDeckTarget">황금열쇠</div>
@@ -165,11 +161,9 @@
             </div>
         </div>
         
-        <!-- 우측 지갑 패널 -->
         <div class="side-panel right-panel" id="rightPanel"></div>
     </div>
     
-    <!-- 하단 증서 패널 목록 -->
     <div class="property-container" id="propertyPanels"></div>
 
     <div id="toast-container"></div>
@@ -186,7 +180,6 @@
     </div>
 
     <script>
-        // 음향 통제망
         function playSound(fileName) {
             try {
                 let audio = new Audio(fileName);
@@ -241,13 +234,11 @@
             return { ...자료, 인덱스: 인덱스, 구매가능: false, 토지만: false };
         });
 
-        // 전역 상태 변수
         const 플레이어색상 = ["#e53935", "#1e88e5", "#4caf50", "#fbc02d"];
         let 참가자목록 = [];
         let 현재차례 = 0; let 굴리는중 = false; let 사회복지기금 = 0; let 더블저장 = false;
         let 우주여행_대기자 = null; let 황금열쇠_대기중 = false;
 
-        // 모달 제어망
         let modalCallback = null;
         function openModal(title, desc, type, options, callback, hideCancel = false) {
             document.getElementById('modalTitle').innerText = title;
@@ -302,7 +293,6 @@
             setTimeout(() => { toast.remove(); }, 3500);
         }
 
-        // 초기 설정망
         function updateSetupInputs() {
             let count = parseInt(document.getElementById('playerCount').value);
             let container = document.getElementById('nameInputsContainer');
@@ -338,6 +328,21 @@
                 칸.style.gridArea = 칸_위치_계산(인덱스);
                 칸.onclick = function() { 칸_클릭_처리(인덱스); };
                 
+                // 특수 구역 및 황금열쇠 배경색 통제
+                if (["제주도", "콩고드여객기", "부산", "퀸엘리자베스", "콜롬비아호", "서울"].includes(자료.이름)) {
+                    칸.style.backgroundColor = "#e1bee7"; // 연보라색 적용
+                } else if (자료.이름.includes("황금열쇠")) {
+                    칸.style.backgroundColor = "gold";
+                }
+
+                // 방위별 색상 띠(Border) 연산 적용 (황금열쇠 및 모서리 제외)
+                if (!자료.이름.includes("황금열쇠") && ![0, 10, 20, 30].includes(인덱스)) {
+                    if (인덱스 >= 1 && 인덱스 <= 9) 칸.style.borderTop = "10px solid #fbc02d";
+                    else if (인덱스 >= 11 && 인덱스 <= 19) 칸.style.borderRight = "10px solid #4caf50";
+                    else if (인덱스 >= 21 && 인덱스 <= 29) 칸.style.borderBottom = "10px solid #1e88e5";
+                    else if (인덱스 >= 31 && 인덱스 <= 39) 칸.style.borderLeft = "10px solid #e53935";
+                }
+                
                 let 시각물 = 자료.국기 
                     ? `<img src="https://flagcdn.com/w40/${자료.국기}.png" style="width:40px; border:1px solid #ccc; border-radius:2px; margin-bottom:4px;">` 
                     : `<div class="icon">${자료.그림}</div>`;
@@ -345,8 +350,8 @@
                 칸.innerHTML = `<div>${시각물}</div><div class="name">${자료.이름}</div>
                                 <div id="mark-${인덱스}" class="building-container"></div>
                                 <div id="fund-${인덱스}" class="fund-visuals"></div>`;
+                
                 if ([0, 10, 20, 30].includes(인덱스)) 칸.classList.add('corner');
-                if (자료.이름.includes("황금열쇠")) 칸.style.backgroundColor = "gold";
                 보드요소.appendChild(칸);
             });
 
@@ -359,7 +364,6 @@
                 document.getElementById(`cell-0`).appendChild(말);
             });
 
-            // 지갑 및 증서 패널 생성
             let leftPanel = document.getElementById('leftPanel');
             let rightPanel = document.getElementById('rightPanel');
             let propertyPanels = document.getElementById('propertyPanels');
@@ -450,7 +454,11 @@
                 기록_출력(`<strong>[${참가자.이름}]</strong> 출발지 통과 200,000 원 지급.`);
             }
             let 말요소 = document.getElementById(`player-${참가자.인덱스}`);
-            document.getElementById(`cell-${참가자.위치}`).appendChild(말요소);
+            let 대상칸 = document.getElementById(`cell-${참가자.위치}`);
+            대상칸.appendChild(말요소);
+            
+            // 화면 초점 동적 추적 적용
+            대상칸.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             
             말요소.classList.remove('jump-anim');
             void 말요소.offsetWidth;
@@ -468,7 +476,7 @@
             if (구역.건물.호텔 > 0) 건물총합 += 구역.가격.호텔;
             
             let 배수 = 1;
-            // 1.2배, 1.5배, 1.7배, 2.0배 산정식 원상 복구 적용
+            // 1.2, 1.5, 1.7, 2.0 배수 원상 복구 적용
             if (구역.인덱스 >= 1 && 구역.인덱스 <= 9) 배수 = 1.2;
             else if (구역.인덱스 >= 11 && 구역.인덱스 <= 19) 배수 = 1.5;
             else if (구역.인덱스 >= 21 && 구역.인덱스 <= 29) 배수 = 1.7;
@@ -546,7 +554,10 @@
                 return { label: `${item.이름} (+${item.매각가.toLocaleString()}원)`, value: item.자료.인덱스.toString() };
             });
 
-            openModal("파산 위기 - 자산 강제 매각", `대금 지불 잔액이 부족합니다.\n필요액: ${지불액.toLocaleString()}원\n현재액: ${참가자.자본.toLocaleString()}원\n\n매각할 부동산 선택 (원가 75%)`, "select", 옵션, (입력) => {
+            // 잔액 연산 표출 추가
+            let 추가필요액 = 지불액 - 참가자.자본;
+
+            openModal("파산 위기 - 자산 강제 매각", `대금 지불 잔액이 부족합니다.\n필요액: ${지불액.toLocaleString()}원\n현재액: ${참가자.자본.toLocaleString()}원\n\n[추가로 얻어야 할 잔액: ${추가필요액.toLocaleString()}원]\n\n매각할 부동산 선택 (원가 75%)`, "select", 옵션, (입력) => {
                 if (입력) {
                     let 인덱스 = parseInt(입력);
                     let 구역 = 보드판_자료[인덱스];
@@ -615,7 +626,11 @@
                 playSound('cash.mp3'); 지갑_업데이트(); 기금_시각화_업데이트();
             }
             let 말요소 = document.getElementById(`player-${참가자.인덱스}`);
-            document.getElementById(`cell-${참가자.위치}`).appendChild(말요소);
+            let 대상칸 = document.getElementById(`cell-${참가자.위치}`);
+            대상칸.appendChild(말요소);
+            
+            // 화면 초점 동적 추적 적용
+            대상칸.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             
             playSound('jump.mp3');
             setTimeout(() => { 세계일주_애니메이션(참가자, 남은칸수 - 1, 완료콜백); }, 40);
@@ -685,12 +700,20 @@
                     let 수령자 = 참가자목록[콜롬비아호.소유자];
                     기록_출력(`<strong>[${p.이름}]</strong> 콜롬비아호 소유자에게 요금을 지불합니다.`);
                     비용_지불_처리(p, 수령자, 400000, d, () => {
-                        p.위치 = 30; document.getElementById(`cell-30`).appendChild(document.getElementById(`player-${p.인덱스}`));
+                        p.위치 = 30; 
+                        let 말요소 = document.getElementById(`player-${p.인덱스}`);
+                        let 대상칸 = document.getElementById(`cell-30`);
+                        대상칸.appendChild(말요소);
+                        대상칸.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
                         우주여행_대기자 = p.인덱스; document.querySelectorAll('.cell').forEach(c => c.classList.add('select-mode'));
                         상태_갱신(`[${p.이름}] 목적지를 클릭하십시오.`);
                     });
                 } else {
-                    p.위치 = 30; document.getElementById(`cell-30`).appendChild(document.getElementById(`player-${p.인덱스}`));
+                    p.위치 = 30; 
+                    let 말요소 = document.getElementById(`player-${p.인덱스}`);
+                    let 대상칸 = document.getElementById(`cell-30`);
+                    대상칸.appendChild(말요소);
+                    대상칸.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
                     우주여행_대기자 = p.인덱스; document.querySelectorAll('.cell').forEach(c => c.classList.add('select-mode'));
                     상태_갱신(`[${p.이름}] 목적지를 클릭하십시오.`);
                 }
@@ -831,7 +854,11 @@
             if (참가자.위치 >= 40) { 참가자.위치 = 0; 참가자.자본 += 200000; 기록_출력(`<strong>[${참가자.이름}]</strong> 출발지 통과. 200,000 원 지급.`); 지갑_업데이트(); }
             
             let 말요소 = document.getElementById(`player-${참가자.인덱스}`);
-            document.getElementById(`cell-${참가자.위치}`).appendChild(말요소);
+            let 대상칸 = document.getElementById(`cell-${참가자.위치}`);
+            대상칸.appendChild(말요소);
+            
+            // 화면 초점 동적 추적 적용
+            대상칸.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             
             말요소.classList.remove('jump-anim');
             void 말요소.offsetWidth; 
@@ -974,9 +1001,9 @@
 
                         let 지불액 = 통행료_계산(도착칸);
                         if (참가자.아이템.우대권 > 0) {
-                            openModal("우대권 사용", `통행료 ${지불액.toLocaleString()}원을 면제받으시겠습니까?`, "select", [{label: "우대권 사용하기", value: 'yes'}, {label: "사용 안함", value: 'no'}], (입력) => {
+                            openModal("우대권 사용", `상대방 구역입니다. 통행료 ${지불액.toLocaleString()}원을 면제받으시겠습니까?`, "select", [{label: "우대권 사용하기", value: 'yes'}, {label: "사용 안함", value: 'no'}], (입력) => {
                                 if (입력 === 'yes') {
-                                    참가자.아이템.우대권--; 기록_출력(`<strong>[${참가자.이름}]</strong> 우대권으로 통행료 면제.`);
+                                    참가자.아이템.우대권--; 기록_출력(`<strong>[${참가자.이름}]</strong> 우대권 사용. 통행료 면제.`);
                                     지갑_업데이트(); 차례_종료(더블여부);
                                 } else {
                                     비용_지불_처리(참가자, 소유자객체, 지불액, 더블여부, () => 차례_종료(더블여부));
